@@ -1,8 +1,9 @@
 {
   "name": "Eswar Cafe Billing",
   "short_name": "Eswar Cafe",
-  "description": "Offline-first tea shop billing and sales app",
-  "start_url": "./index.html",
+  "description": "Eswar Cafe billing and daily sales app",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f8f5ef",
   "theme_color": "#4b2b20",
