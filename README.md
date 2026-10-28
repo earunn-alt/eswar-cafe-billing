@@ -1,18 +1,19 @@
-# Eswar Cafe Billing — Current receipt update
+# Eswar Cafe Billing — print fix update
 
-## Current changes
-- Print layout prints only the receipt, not the menu or billing screen.
-- Receipt uses the supplied Eswar Cafe mascot logo converted to high-contrast black and white.
-- Removed the separate cafe-name heading below the logo.
-- Receipt shows bill number, date, payment type, Item / QTY / Price / AMT, and final Total.
-- Category filters are available for All, Tea, Coffee, Cold drinks, Snacks and Bakery.
+This package contains the Eswar Cafe Billing app and a print fix for the duplicate receipt pages seen in Chrome print preview.
 
-## Publish to GitHub Pages
-1. Extract this ZIP.
-2. In your repository, choose **Add file → Upload files**.
-3. Upload `index.html`, `manifest.json`, and `sw.js`, replacing existing files.
-4. Commit directly to `main`.
-5. Refresh the live app. If an old version remains, close and reopen the tab or use Ctrl+Shift+R.
+## What's changed
+- The print area now uses `position: absolute` instead of `position: fixed`, which prevents Chrome from repeating the receipt on subsequent pages.
+- Added print page-break protection for the receipt.
+- Updated the service-worker cache version so browsers can fetch the updated app shell.
 
-## Notes
-Data is stored locally in each browser/device. Automatic cross-device sync and verified QR-payment integration are not included. Export a backup before updating as a precaution.
+## Update GitHub Pages
+1. Extract this ZIP on your computer.
+2. Open your GitHub repository: https://github.com/earunn-alt/eswar-cafe-billing
+3. Upload/replace `index.html`, `manifest.json`, `sw.js`, and `README.md` in the repository root.
+4. Commit the changes to the `main` branch.
+5. Open the app and press `Ctrl + Shift + R` to refresh. If it still shows the old version, close the app tab and reopen it.
+6. Test a bill using Chrome print preview.
+
+## Data note
+The app stores sales and settings in the browser's local storage. Replacing app files should not normally clear that data, but export a backup first from Backup & Settings as a precaution.
