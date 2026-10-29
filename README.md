@@ -1,19 +1,24 @@
-# Eswar Cafe Billing — print fix update
+# Eswar Cafe Billing — Configurable Counter Tokens
 
-This package contains the Eswar Cafe Billing app and a print fix for the duplicate receipt pages seen in Chrome print preview.
+One print action produces one continuous receipt:
+1. Customer bill with all items, quantities, prices, and total.
+2. Counter tokens containing only the categories assigned to each counter.
 
-## What's changed
-- The print area now uses `position: absolute` instead of `position: fixed`, which prevents Chrome from repeating the receipt on subsequent pages.
-- Added print page-break protection for the receipt.
-- Updated the service-worker cache version so browsers can fetch the updated app shell.
+## Configure token counters
+Go to **Backup & Settings → Token counter setup**.
+- Change the counter name.
+- Enter assigned categories separated by commas.
+- Save token settings.
+- Click **+ Add token counter** to add counters such as `Chaat Counter`, assigned to category `Chaat`.
 
-## Update GitHub Pages
-1. Extract this ZIP on your computer.
-2. Open your GitHub repository: https://github.com/earunn-alt/eswar-cafe-billing
-3. Upload/replace `index.html`, `manifest.json`, `sw.js`, and `README.md` in the repository root.
-4. Commit the changes to the `main` branch.
-5. Open the app and press `Ctrl + Shift + R` to refresh. If it still shows the old version, close the app tab and reopen it.
-6. Test a bill using Chrome print preview.
+The menu Category field supports custom category names. Add Chaat menu items with category `Chaat`, then assign that category to the Chaat Counter in settings. Only counters with matching items print. Unassigned items appear on an `OTHER ITEMS` token so no order item is omitted.
 
-## Data note
-The app stores sales and settings in the browser's local storage. Replacing app files should not normally clear that data, but export a backup first from Backup & Settings as a precaution.
+Before replacing GitHub files, export a backup from Backup & Settings. App data is stored locally in the browser/device.
+
+
+## Manage menu categories
+In **Items & Prices → Customize categories**:
+- Type a category name (for example, `Chaat`) and click **Add category**.
+- The category becomes available in the Add/Edit Item category field.
+- Use the category filter chips above the item table to view items by category.
+- You can remove a custom category only when no menu items use it. Built-in categories stay available.
