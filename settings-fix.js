@@ -71,7 +71,7 @@
       name:row.querySelector('[data-counter-name]')?.value.trim()||'Counter '+(i+1),
       categories:[...row.querySelectorAll('[data-counter-category]:checked')].map(x=>x.value)
     }));
-    rows.push({id:'counter-'+Date.now(),name:'Chaat Counter',categories:(d.settings.itemCategories||[]).includes('Chaat')?['Chaat']:[]});
+    rows.push({id:'counter-'+Date.now(),name:'New Counter',categories:[]});
     d.settings.tokenCounters=rows;writeDB(d);refreshCounterUI(d);notify('Counter added. Click Save token settings.');
   }
   function saveCounters(){
