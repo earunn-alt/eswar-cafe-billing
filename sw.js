@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eswar-cafe-billing-v4-custom-categories';
+const CACHE_NAME = 'eswar-cafe-billing-v5-settings-fix';
 const APP_FILES = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {
