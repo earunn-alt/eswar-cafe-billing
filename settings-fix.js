@@ -18,14 +18,14 @@
       {id:'snacks',name:'Snacks Counter',categories:['Snacks','Bakery','Other']},
       {id:'tea',name:'Tea Counter',categories:['Tea','Coffee','Cold drinks']}
     ];
-    db.settings.itemCategories=Array.isArray(db.settings.itemCategories)?db.settings.itemCategories:['Tea','Coffee','Cold drinks','Snacks','Bakery','Other'];
+    db.settings.itemCategories=Array.isArray(db.settings.itemCategories)?db.settings.itemCategories:[];
     db.items=Array.isArray(db.items)?db.items:[];
     db.bills=Array.isArray(db.bills)?db.bills:[];
     db.expenses=Array.isArray(db.expenses)?db.expenses:[];
     return db;
   }
   function refreshCategoryUI(db){
-    const cats=[...new Set(['Tea','Coffee','Cold drinks','Snacks','Bakery','Other',...(db.settings.itemCategories||[]),...(db.items||[]).map(x=>x.category)].filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    const cats=[...new Set([...(db.settings.itemCategories||[]),...(db.items||[]).map(x=>x.category).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
     const chips=$('settingsCategoryManagerList');
     if(chips) chips.innerHTML=cats.map(c=>`<span class="chip">${esc(c)}${(db.items||[]).some(i=>i.category===c)?` <small>(${db.items.filter(i=>i.category===c).length})</small>`:''}</span>`).join('');
     const select=$('itemCategory');
@@ -46,7 +46,7 @@
     wrap.innerHTML=counters.map((c,i)=>`<div class="panel token-counter-row" data-counter-id="${esc(c.id||('counter-'+i))}" style="padding:12px;margin:10px 0;background:#fffdf8">
       <div class="formgrid">
         <div class="formgroup"><label>Counter name</label><input class="field" data-counter-name value="${esc(c.name||'')}" required></div>
-        <div class="formgroup"><label>Menu categories routed here</label><input class="field" data-counter-categories value="${esc((c.categories||[]).join(', '))}" required></div>
+        <div class="formgroup"><label>Menu categories routed here</label><div class="counter-category-options" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #e6d6c5;border-radius:10px;background:#fffdf8">${[...(db.settings.itemCategories||[]),...(db.items||[]).map(x=>x.category).filter(Boolean)].filter((v,j,a)=>a.indexOf(v)===j).sort((a,b)=>a.localeCompare(b)).map(cat=>`<label style="display:inline-flex;align-items:center;gap:5px;border:1px solid #e6d6c5;border-radius:18px;padding:6px 9px"><input type="checkbox" data-counter-category value="${esc(cat)}" ${(c.categories||[]).includes(cat)?'checked':''}> ${esc(cat)}</label>`).join('')||'<span class="muted">Create categories in Menu category settings first.</span>'}</div></div>
       </div>
       <div class="actions" style="margin-top:8px"><button class="btn ghost small" type="button" data-remove-counter="${i}">Remove counter</button></div>
     </div>`).join('');
@@ -69,9 +69,9 @@
     const rows=[...document.querySelectorAll('#tokenCounterRows .token-counter-row')].map((row,i)=>({
       id:row.dataset.counterId||'counter-'+i,
       name:row.querySelector('[data-counter-name]')?.value.trim()||'Counter '+(i+1),
-      categories:(row.querySelector('[data-counter-categories]')?.value||'').split(',').map(x=>x.trim()).filter(Boolean)
+      categories:[...row.querySelectorAll('[data-counter-category]:checked')].map(x=>x.value)
     }));
-    rows.push({id:'counter-'+Date.now(),name:'Chaat Counter',categories:['Chaat']});
+    rows.push({id:'counter-'+Date.now(),name:'Chaat Counter',categories:(d.settings.itemCategories||[]).includes('Chaat')?['Chaat']:[]});
     d.settings.tokenCounters=rows;writeDB(d);refreshCounterUI(d);notify('Counter added. Click Save token settings.');
   }
   function saveCounters(){
@@ -79,7 +79,7 @@
     const rows=[...document.querySelectorAll('#tokenCounterRows .token-counter-row')].map((row,i)=>({
       id:row.dataset.counterId||'counter-'+i,
       name:row.querySelector('[data-counter-name]')?.value.trim()||'',
-      categories:(row.querySelector('[data-counter-categories]')?.value||'').split(',').map(x=>x.trim()).filter(Boolean)
+      categories:[...row.querySelectorAll('[data-counter-category]:checked')].map(x=>x.value)
     }));
     if(!rows.length||rows.some(x=>!x.name||!x.categories.length)){notify('Each counter needs a name and at least one category.');return;}
     d.settings.tokenCounters=rows;writeDB(d);refreshCounterUI(d);notify('Token settings saved.');
@@ -89,9 +89,9 @@
     if(!name){notify('Enter a category name first.');input?.focus();return;}
     const d=defaults(readDB());
     const cats=[...new Set([...(d.settings.itemCategories||[]),...(d.items||[]).map(i=>i.category)].filter(Boolean))];
-    if(['Tea','Coffee','Cold drinks','Snacks','Bakery','Other',...cats].some(c=>c.toLowerCase()===name.toLowerCase())){notify('That category already exists.');return;}
+    if(cats.some(c=>c.toLowerCase()===name.toLowerCase())){notify('That category already exists.');return;}
     d.settings.itemCategories.push(name);writeDB(d);if(input)input.value='';
-    refreshCategoryUI(d);notify('Category added: '+name);
+    refreshCategoryUI(d);refreshCounterUI(d);notify('Category added: '+name);
   }
   function backup(){
     const d=defaults(readDB());d.backupCreatedAt=new Date().toISOString();d.app='Eswar Cafe Billing';

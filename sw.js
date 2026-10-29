@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eswar-cafe-billing-v5-settings-fix';
+const CACHE_NAME = 'eswar-cafe-billing-v8-category-checkboxes';
 const APP_FILES = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {
