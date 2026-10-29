@@ -4,7 +4,7 @@
   const KEY='eswarCafeBillingV1';
   const $=id=>document.getElementById(id);
   const readDB=()=>{try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return {}}};
-  const writeDB=db=>localStorage.setItem(KEY,JSON.stringify(db));
+  const writeDB=db=>{if(typeof window.replaceEswarCafeDB==='function')window.replaceEswarCafeDB(db);else localStorage.setItem(KEY,JSON.stringify(db));};
   const notify=msg=>{
     const el=$('toast');
     if(el){el.textContent=msg;el.classList.remove('hidden');}
@@ -104,6 +104,7 @@
     const url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download='eswar-cafe-sales-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);notify('Sales CSV download started.');
   }
   function bind(id,fn){const el=$(id);if(el)el.onclick=e=>{e.preventDefault();try{fn()}catch(err){console.error(err);alert('Action failed: '+err.message)}};}
+  bind('addItemBtn',()=>{if(typeof window.openEswarCafeItemForm==='function')window.openEswarCafeItemForm();else alert('Item form could not be opened. Please refresh the app.');});
   bind('saveCafeSettings',saveCafe);
   bind('addTokenCounter',addCounter);
   bind('saveTokenSettings',saveCounters);
