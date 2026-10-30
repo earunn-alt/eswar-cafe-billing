@@ -25,9 +25,9 @@
     return db;
   }
   function refreshCategoryUI(db){
-    const cats=[...new Set([...(db.settings.itemCategories||[]),...(db.items||[]).map(x=>x.category).filter(Boolean)])].sort((a,b)=>a.localeCompare(b));
+    const cats=[...new Set((db.settings.itemCategories||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     const chips=$('settingsCategoryManagerList');
-    if(chips) chips.innerHTML=cats.map(c=>`<span class="chip">${esc(c)}${(db.items||[]).some(i=>i.category===c)?` <small>(${db.items.filter(i=>i.category===c).length})</small>`:''}</span>`).join('');
+    if(chips){chips.innerHTML=cats.map(c=>`<span class="chip">${esc(c)}${(db.items||[]).some(i=>i.category===c)?` <small>(${db.items.filter(i=>i.category===c).length} items)</small>`:''} <button type="button" class="remove-row" data-helper-removecategory="${esc(c)}">×</button></span>`).join('');chips.querySelectorAll('[data-helper-removecategory]').forEach(btn=>btn.onclick=()=>{const cat=btn.dataset.helperRemovecategory;const count=(db.items||[]).filter(i=>i.category===cat).length;if(!confirm(count?`Remove ${cat}? Existing items remain but become uncategorized.`:`Remove ${cat}?`))return;db.settings.itemCategories=(db.settings.itemCategories||[]).filter(x=>x!==cat);(db.items||[]).forEach(i=>{if(i.category===cat)i.category=''});writeDB(db);refreshCategoryUI(db);refreshCounterUI(db);if(typeof window.renderAll==='function')window.renderAll();notify('Category removed.');});}
     const select=$('itemCategory');
     if(select){
       const current=select.value;
@@ -46,7 +46,7 @@
     wrap.innerHTML=counters.map((c,i)=>`<div class="panel token-counter-row" data-counter-id="${esc(c.id||('counter-'+i))}" style="padding:12px;margin:10px 0;background:#fffdf8">
       <div class="formgrid">
         <div class="formgroup"><label>Counter name</label><input class="field" data-counter-name value="${esc(c.name||'')}" required></div>
-        <div class="formgroup"><label>Menu categories routed here</label><div class="counter-category-options" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #e6d6c5;border-radius:10px;background:#fffdf8">${[...(db.settings.itemCategories||[]),...(db.items||[]).map(x=>x.category).filter(Boolean)].filter((v,j,a)=>a.indexOf(v)===j).sort((a,b)=>a.localeCompare(b)).map(cat=>`<label style="display:inline-flex;align-items:center;gap:5px;border:1px solid #e6d6c5;border-radius:18px;padding:6px 9px"><input type="checkbox" data-counter-category value="${esc(cat)}" ${(c.categories||[]).includes(cat)?'checked':''}> ${esc(cat)}</label>`).join('')||'<span class="muted">Create categories in Menu category settings first.</span>'}</div></div>
+        <div class="formgroup"><label>Menu categories routed here</label><div class="counter-category-options" style="display:flex;flex-wrap:wrap;gap:8px;padding:8px;border:1px solid #e6d6c5;border-radius:10px;background:#fffdf8">${[...(db.settings.itemCategories||[])].filter((v,j,a)=>a.indexOf(v)===j).sort((a,b)=>a.localeCompare(b)).map(cat=>`<label style="display:inline-flex;align-items:center;gap:5px;border:1px solid #e6d6c5;border-radius:18px;padding:6px 9px"><input type="checkbox" data-counter-category value="${esc(cat)}" ${(c.categories||[]).includes(cat)?'checked':''}> ${esc(cat)}</label>`).join('')||'<span class="muted">Create categories in Menu category settings first.</span>'}</div></div>
       </div>
       <div class="actions" style="margin-top:8px"><button class="btn ghost small" type="button" data-remove-counter="${i}">Remove counter</button></div>
     </div>`).join('');

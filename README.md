@@ -1,24 +1,19 @@
-# Eswar Cafe Billing — Configurable Counter Tokens
+# Eswar Cafe Billing — Category and Item Workflow Update
 
-One print action produces one continuous receipt:
-1. Customer bill with all items, quantities, prices, and total.
-2. Counter tokens containing only the categories assigned to each counter.
+## Category workflow
+1. Open **Backup & Settings → Menu category settings**.
+2. Add the categories you want to use.
+3. Every configured category has an **×** remove control. If a category is removed, existing items remain in the menu but become uncategorized; edit those items and assign a current category if needed.
+4. Only configured categories appear in the Add/Edit Item dropdown and token-counter category selectors.
 
-## Configure token counters
-Go to **Backup & Settings → Token counter setup**.
-- Change the counter name.
-- Enter assigned categories separated by commas.
-- Save token settings.
-- Click **+ Add token counter** to add counters such as `Chaat Counter`, assigned to category `Chaat`.
+## Item and POS workflow
+1. Open **Items & Prices → Add item**.
+2. Enter the item name, price, select a configured category, and save.
+3. The item is saved locally and the form closes without navigating away from Items & Prices.
+4. Saved, active items are what appear in the Billing/POS menu. Hidden items do not appear there.
 
-The menu Category field supports custom category names. Add Chaat menu items with category `Chaat`, then assign that category to the Chaat Counter in settings. Only counters with matching items print. Unassigned items appear on an `OTHER ITEMS` token so no order item is omitted.
-
-Before replacing GitHub files, export a backup from Backup & Settings. App data is stored locally in the browser/device.
-
-
-## Manage menu categories
-In **Items & Prices → Customize categories**:
-- Type a category name (for example, `Chaat`) and click **Add category**.
-- The category becomes available in the Add/Edit Item category field.
-- Use the category filter chips above the item table to view items by category.
-- You can remove a custom category only when no menu items use it. Built-in categories stay available.
+## Important
+- Export a backup before replacing the files.
+- This version still stores data in the browser's local storage; it is not cloud-synced.
+- After uploading all files to GitHub Pages, hard-refresh the app (Ctrl+Shift+R). If installed as a PWA, close and reopen it after the service worker updates.
+- JavaScript syntax checks passed. Full live-browser interaction testing was not available in this environment, so test category add/remove and item saving with a small test item before using it for live billing.
