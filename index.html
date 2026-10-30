@@ -87,7 +87,7 @@
 <main class="main">
 <div id="page-billing" class="page">
   <div class="pagehead"><div><h2>Quick billing</h2><div class="muted">Tap items to add them to the current bill.</div></div><button class="btn ghost" id="newBillBtn">＋ New bill</button></div>
-  <div class="notice">Demo starter data is included. Update the menu and prices for your actual cafe before using this for live sales.</div>
+  <div class="notice">Your POS menu is populated only from active items saved in Items &amp; Prices. Add and manage your real menu there.</div>
   <div class="posgrid">
     <section class="panel">
       <h3 class="section-title">Menu</h3>
@@ -235,12 +235,44 @@ const starterItems=[
 ].map(x=>({...x,id:uid()}));
 let db=loadDB(), cart=[], activeCategory='All', currentPage='billing', toastTimer;
 function defaultTokenCounters(){return [{id:'snacks',name:'Snacks Counter',categories:['Snacks','Bakery','Other']},{id:'tea',name:'Tea Counter',categories:['Tea','Coffee','Cold drinks']}]}
-function loadDB(){try{const x=JSON.parse(localStorage.getItem(STORE_KEY));if(x&&Array.isArray(x.items)){x.settings=x.settings||{};if(!Array.isArray(x.settings.tokenCounters))x.settings.tokenCounters=[];if(!Array.isArray(x.settings.itemCategories))x.settings.itemCategories=[];
-// One-time cleanup: remove the complete built-in demo menu from older versions while preserving any custom items and all bill history.
-const isDemo=(item,seed)=>String(item.name||'').trim().toLowerCase()===seed.name.toLowerCase()&&Number(item.price)===seed.price&&String(item.category||'').trim().toLowerCase()===seed.category.toLowerCase();
-const hasCompleteDemoMenu=starterItems.every(seed=>x.items.some(item=>isDemo(item,seed)));
-if(hasCompleteDemoMenu){x.items=x.items.filter(item=>!starterItems.some(seed=>isDemo(item,seed)));localStorage.setItem(STORE_KEY,JSON.stringify(x));}
-return x}}catch(e){console.error('Could not load saved cafe data:',e)}return {items:[],bills:[],expenses:[],settings:{name:'Eswar Cafe',phone:'',address:'',footer:'Thank you! Visit again.',tokenCounters:[],itemCategories:[]}}}
+function loadDB(){
+  const emptyDB=()=>({items:[],bills:[],expenses:[],settings:{name:'Eswar Cafe',phone:'',address:'',footer:'Thank you! Visit again.',tokenCounters:[],itemCategories:[]}});
+  try{
+    const raw=localStorage.getItem(STORE_KEY);
+    if(!raw)return emptyDB();
+    const parsed=JSON.parse(raw);
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return emptyDB();
+    const x=parsed;
+    x.items=Array.isArray(x.items)?x.items:[];
+    x.bills=Array.isArray(x.bills)?x.bills:[];
+    x.expenses=Array.isArray(x.expenses)?x.expenses:[];
+    x.settings=x.settings&&typeof x.settings==='object'&&!Array.isArray(x.settings)?x.settings:{};
+    x.settings.tokenCounters=Array.isArray(x.settings.tokenCounters)?x.settings.tokenCounters:[];
+    x.settings.itemCategories=Array.isArray(x.settings.itemCategories)?x.settings.itemCategories.filter(v=>typeof v==='string'&&v.trim()):[];
+    x.settings.name=x.settings.name||'Eswar Cafe';
+    x.settings.footer=x.settings.footer||'Thank you! Visit again.';
+
+    // Remove only the complete known starter menu, matching item name + sample price.
+    // Category names are deliberately ignored because users may have renamed categories.
+    const isDemo=(item,seed)=>String(item.name||'').trim().toLowerCase()===seed.name.toLowerCase()&&Number(item.price)===seed.price;
+    const matchedDemoRows=[];
+    starterItems.forEach(seed=>{
+      const match=x.items.find(item=>!matchedDemoRows.includes(item)&&isDemo(item,seed));
+      if(match)matchedDemoRows.push(match);
+    });
+    const hasCompleteDemoMenu=matchedDemoRows.length===starterItems.length;
+    if(hasCompleteDemoMenu){
+      // Remove one matched copy of each seeded row, preserving any duplicate custom rows.
+      const demoRows=new Set(matchedDemoRows);
+      x.items=x.items.filter(item=>!demoRows.has(item));
+      localStorage.setItem(STORE_KEY,JSON.stringify(x));
+    }
+    return x;
+  }catch(e){
+    console.error('Could not load saved cafe data:',e);
+    return emptyDB();
+  }
+}
 function saveDB(){localStorage.setItem(STORE_KEY,JSON.stringify(db));renderAll()}
 window.replaceEswarCafeDB=function(next){db=next;saveDB()};
 window.openEswarCafeItemForm=function(id){openItemForm(id)};
@@ -249,7 +281,7 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 function nav(page){currentPage=page;document.querySelectorAll('.page').forEach(x=>x.classList.toggle('hidden',x.id!=='page-'+page));document.querySelectorAll('[data-page]').forEach(x=>x.classList.toggle('active',x.dataset.page===page));if(page==='sales')renderSales();if(page==='today')renderStats();if(page==='items'){updateCategoryOptions();renderManageCategories();renderItemsTable();}if(page==='expenses')renderExpenses();if(page==='reports')renderReports();if(page==='backup')renderSettings();window.scrollTo(0,0)}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>nav(b.dataset.page)));
 function renderCategories(){const cats=['All',...new Set(db.items.filter(i=>i.active).map(i=>i.category))];document.getElementById('categories').innerHTML=cats.map(c=>`<button class="chip ${activeCategory===c?'active':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('');document.querySelectorAll('#categories [data-cat]').forEach(b=>b.onclick=()=>{activeCategory=b.dataset.cat;renderCategories();renderPosItems()})}
-function renderPosItems(){const q=(document.getElementById('itemSearch').value||'').toLowerCase();const list=db.items.filter(i=>i.active&&(activeCategory==='All'||i.category===activeCategory)&&i.name.toLowerCase().includes(q));document.getElementById('posItems').innerHTML=list.map(i=>{const row=cart.find(x=>x.id===i.id),qty=row?row.qty:0;return `<div class="item-card"><button class="item-add" data-add="${i.id}"><div class="item-emoji">${esc(i.emoji||'☕')}</div><div class="item-info"><div class="item-name">${esc(i.name)}</div><div class="item-price">${money(i.price)}</div></div></button><div class="item-qtybar"><span class="muted">Qty: <b data-itemqty="${i.id}">${qty}</b></span><div class="qty"><button data-cardqty="${i.id}" data-delta="-1" aria-label="Decrease ${esc(i.name)}">−</button><b>${qty}</b><button data-cardqty="${i.id}" data-delta="1" aria-label="Increase ${esc(i.name)}">+</button></div></div></div>`}).join('')||'<div class="empty">No matching items.</div>';document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addCart(b.dataset.add));document.querySelectorAll('[data-cardqty]').forEach(b=>b.onclick=()=>{const id=b.dataset.cardqty,delta=Number(b.dataset.delta);if(delta>0)addCart(id);else changeQty(id,-1)})}
+function renderPosItems(){const q=(document.getElementById('itemSearch').value||'').toLowerCase();const list=(Array.isArray(db.items)?db.items:[]).filter(i=>i&&i.active===true&&(activeCategory==='All'||i.category===activeCategory)&&String(i.name||'').toLowerCase().includes(q));document.getElementById('posItems').innerHTML=list.map(i=>{const row=cart.find(x=>x.id===i.id),qty=row?row.qty:0;return `<div class="item-card"><button class="item-add" data-add="${i.id}"><div class="item-emoji">${esc(i.emoji||'☕')}</div><div class="item-info"><div class="item-name">${esc(i.name)}</div><div class="item-price">${money(i.price)}</div></div></button><div class="item-qtybar"><span class="muted">Qty: <b data-itemqty="${i.id}">${qty}</b></span><div class="qty"><button data-cardqty="${i.id}" data-delta="-1" aria-label="Decrease ${esc(i.name)}">−</button><b>${qty}</b><button data-cardqty="${i.id}" data-delta="1" aria-label="Increase ${esc(i.name)}">+</button></div></div></div>`}).join('')||'<div class="empty">No matching items.</div>';document.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>addCart(b.dataset.add));document.querySelectorAll('[data-cardqty]').forEach(b=>b.onclick=()=>{const id=b.dataset.cardqty,delta=Number(b.dataset.delta);if(delta>0)addCart(id);else changeQty(id,-1)})}
 document.getElementById('itemSearch').addEventListener('input',renderPosItems);
 function addCart(id){const item=db.items.find(x=>x.id===id);if(!item)return;let row=cart.find(x=>x.id===id);if(row)row.qty++;else cart.push({...item,qty:1});renderCart();renderPosItems()}
 function changeQty(id,delta){const row=cart.find(x=>x.id===id);if(!row){if(delta>0)addCart(id);return}row.qty+=delta;if(row.qty<=0)cart=cart.filter(x=>x.id!==id);renderCart();renderPosItems()}
@@ -290,14 +322,28 @@ function printReceipt(b){
   window.print();
   setTimeout(()=>document.getElementById('printArea').classList.add('hidden'),500);
 }
-{const date=(document.getElementById('todayReportDate')&&document.getElementById('todayReportDate').value)||today();const bills=db.bills.filter(b=>b.date===date);const sum=p=>bills.filter(b=>!p||b.payment===p).reduce((s,b)=>s+b.total,0);document.getElementById('todaySales').textContent=money(sum());document.getElementById('todayBills').textContent=bills.length;document.getElementById('todayCash').textContent=money(sum('Cash'));document.getElementById('todayUpi').textContent=money(sum('UPI'));const table=document.getElementById('todayBillsTable');if(table)table.innerHTML=bills.slice().reverse().map(b=>`<tr><td><button class="bill-link" data-todaybill="${b.id}">${esc(b.number)}</button></td><td>${new Date(b.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td>${b.items.reduce((s,i)=>s+i.qty,0)} item(s)</td><td>${esc(b.payment)}</td><td class="right"><b>${money(b.total)}</b></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No bills for this date.</td></tr>';document.querySelectorAll('[data-todaybill]').forEach(b=>b.onclick=()=>{const bill=db.bills.find(x=>x.id===b.dataset.todaybill);if(bill){nav('sales');document.getElementById('salesDate').value=bill.date;renderSales();showBillDetails(bill.id)}})}
-document.getElementById('todayReportDate').value=today();document.getElementById('todayReportDate').addEventListener('change',renderStats);
+function renderStats(){
+  const date=(document.getElementById('todayReportDate')&&document.getElementById('todayReportDate').value)||today();
+  const bills=(Array.isArray(db.bills)?db.bills:[]).filter(b=>b.date===date);
+  const sum=payment=>bills.filter(b=>!payment||b.payment===payment).reduce((total,b)=>total+(Number(b.total)||0),0);
+  document.getElementById('todaySales').textContent=money(sum());
+  document.getElementById('todayBills').textContent=String(bills.length);
+  document.getElementById('todayCash').textContent=money(sum('Cash'));
+  document.getElementById('todayUpi').textContent=money(sum('UPI'));
+  const table=document.getElementById('todayBillsTable');
+  if(table){
+    table.innerHTML=bills.slice().reverse().map(b=>`<tr><td><button class="bill-link" data-todaybill="${b.id}">${esc(b.number||'')}</button></td><td>${b.createdAt?new Date(b.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}):''}</td><td>${(b.items||[]).reduce((n,i)=>n+(Number(i.qty)||0),0)} item(s)</td><td>${esc(b.payment||'')}</td><td class="right"><b>${money(b.total)}</b></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No bills for this date.</td></tr>';
+    table.querySelectorAll('[data-todaybill]').forEach(button=>button.onclick=()=>{const bill=db.bills.find(x=>x.id===button.dataset.todaybill);if(bill){nav('sales');document.getElementById('salesDate').value=bill.date;renderSales();showBillDetails(bill.id);}});
+  }
+}
+document.getElementById('todayReportDate').value=today();
+document.getElementById('todayReportDate').addEventListener('change',renderStats);
 function renderAll(){renderCategories();renderPosItems();renderCart();if(currentPage==='today')renderStats();if(currentPage==='items'){renderItemsTable();renderManageCategories()}if(currentPage==='sales')renderSales();if(currentPage==='expenses')renderExpenses();if(currentPage==='reports')renderReports();if(currentPage==='backup')renderSettings()}
 let manageCategory='All';
 function allItemCategories(){return [...new Set((db.settings.itemCategories||[]).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
 function renderManageCategories(){const cats=['All',...allItemCategories()];if(manageCategory!=='All'&&!cats.includes(manageCategory))manageCategory='All';const el=document.getElementById('manageCategories');el.innerHTML=cats.map(c=>`<button class="chip ${manageCategory===c?'active':''}" data-managecat="${esc(c)}">${esc(c)}</button>`).join('');el.querySelectorAll('[data-managecat]').forEach(b=>b.onclick=()=>{manageCategory=b.dataset.managecat;renderManageCategories();renderItemsTable()})}
 function renderCategoryManager(){renderSettingsCategories()}
-function renderItemsTable(){const q=(document.getElementById('manageSearch').value||'').toLowerCase();const rows=db.items.filter(i=>i.name.toLowerCase().includes(q)&&(manageCategory==='All'||i.category===manageCategory));document.getElementById('itemsTable').innerHTML=rows.map(i=>`<tr><td><b>${esc(i.emoji)} ${esc(i.name)}</b></td><td>${esc(i.category)}</td><td>${money(i.price)}</td><td><span class="tag ${i.active?'':'pending'}">${i.active?'Active':'Hidden'}</span></td><td><div class="actions"><button class="btn ghost small" data-edit="${i.id}">Edit</button><button class="btn ghost small" data-toggle="${i.id}">${i.active?'Hide':'Enable'}</button><button class="btn danger small" data-delitem="${i.id}">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No menu items in this category.</td></tr>';document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openItemForm(b.dataset.edit));document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const i=db.items.find(x=>x.id===b.dataset.toggle);i.active=!i.active;saveDB()});document.querySelectorAll('[data-delitem]').forEach(b=>b.onclick=()=>{if(confirm('Delete this item from the menu? Past bills remain unchanged.')){db.items=db.items.filter(x=>x.id!==b.dataset.delitem);saveDB()}})}
+function renderItemsTable(){const q=(document.getElementById('manageSearch').value||'').toLowerCase();const rows=(Array.isArray(db.items)?db.items:[]).filter(i=>i&&String(i.name||'').toLowerCase().includes(q)&&(manageCategory==='All'||i.category===manageCategory));document.getElementById('itemsTable').innerHTML=rows.map(i=>`<tr><td><b>${esc(i.emoji)} ${esc(i.name)}</b></td><td>${esc(i.category)}</td><td>${money(i.price)}</td><td><span class="tag ${i.active?'':'pending'}">${i.active?'Active':'Hidden'}</span></td><td><div class="actions"><button class="btn ghost small" data-edit="${i.id}">Edit</button><button class="btn ghost small" data-toggle="${i.id}">${i.active?'Hide':'Enable'}</button><button class="btn danger small" data-delitem="${i.id}">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No menu items in this category.</td></tr>';document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openItemForm(b.dataset.edit));document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{const i=db.items.find(x=>x.id===b.dataset.toggle);i.active=!i.active;saveDB()});document.querySelectorAll('[data-delitem]').forEach(b=>b.onclick=()=>{if(confirm('Delete this item from the menu? Past bills remain unchanged.')){db.items=db.items.filter(x=>x.id!==b.dataset.delitem);saveDB()}})}
 function addMenuCategory(){const input=document.getElementById('newCategoryName');const name=(input.value||'').trim();if(!name){toast('Enter a category name first.');input.focus();return}const existing=(db.settings.itemCategories||[]).some(c=>c.toLowerCase()===name.toLowerCase());if(existing){toast('That category already exists.');return}db.settings.itemCategories=[...(db.settings.itemCategories||[]),name];saveDB();input.value='';updateCategoryOptions();renderManageCategories();renderItemsTable();renderSettingsCategories();renderTokenCounters();toast('Category added: '+name)}
 document.getElementById('manageSearch').addEventListener('input',renderItemsTable);
 function openItemForm(id){document.getElementById('itemForm').reset();updateCategoryOptions();document.getElementById('editItemId').value=id||'';document.getElementById('itemEmoji').value='☕';document.getElementById('itemFormTitle').textContent=id?'Edit menu item':'Add menu item';if(id){const i=db.items.find(x=>x.id===id);document.getElementById('itemName').value=i.name;document.getElementById('itemPrice').value=i.price;updateCategoryOptions(i.category);document.getElementById('itemCategory').value=i.category;document.getElementById('itemEmoji').value=i.emoji||'☕'}document.querySelectorAll('[data-emoji]').forEach(b=>b.classList.toggle('active',b.dataset.emoji===document.getElementById('itemEmoji').value));document.getElementById('itemFormPanel').classList.remove('hidden');document.getElementById('itemFormPanel').scrollIntoView({behavior:'smooth'})}
@@ -336,8 +382,12 @@ function saveItemFromForm(){
     return true;
   }catch(err){console.error('Save item failed:',err);toast('Could not save item: '+(err.message||'unknown error'));return false;}
 }
-document.getElementById('saveItemBtn').addEventListener('click',e=>{e.preventDefault();saveItemFromForm();});
-document.getElementById('itemForm').addEventListener('submit',e=>{e.preventDefault();e.stopPropagation();saveItemFromForm();});
+const itemFormElement=document.getElementById('itemForm');
+const saveItemButton=document.getElementById('saveItemBtn');
+function handleSaveItem(event){if(event){event.preventDefault();event.stopPropagation();}return saveItemFromForm();}
+saveItemButton.type='button';
+saveItemButton.onclick=handleSaveItem;
+itemFormElement.onsubmit=handleSaveItem;
 function renderSales(){const date=document.getElementById('salesDate').value||today(),q=(document.getElementById('salesSearch').value||'').toLowerCase();const rows=db.bills.filter(b=>b.date===date&&(b.number.toLowerCase().includes(q)||(b.note||'').toLowerCase().includes(q))).slice().reverse();document.getElementById('salesTable').innerHTML=rows.map(b=>`<tr><td><button class="bill-link" data-viewbill="${b.id}">${esc(b.number)}</button></td><td>${new Date(b.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</td><td>${b.items.reduce((s,i)=>s+i.qty,0)} item(s)</td><td>${esc(b.payment)}</td><td class="right"><b>${money(b.total)}</b></td><td><button class="btn ghost small" data-reprint="${b.id}">Print</button></td></tr>`).join('')||'<tr><td colspan="6" class="empty">No bills found for this date.</td></tr>';document.querySelectorAll('[data-viewbill]').forEach(b=>b.onclick=()=>showBillDetails(b.dataset.viewbill));document.querySelectorAll('[data-reprint]').forEach(b=>b.onclick=()=>{const bill=db.bills.find(x=>x.id===b.dataset.reprint);if(bill)printReceipt(bill)})}
 function showBillDetails(id){const b=db.bills.find(x=>x.id===id);if(!b)return;const el=document.getElementById('billDetails');el.innerHTML=`<div class="pagehead"><div><h3 class="section-title">Order details — ${esc(b.number)}</h3><div class="muted">${new Date(b.createdAt).toLocaleString('en-IN')} · Payment: ${esc(b.payment)}${b.note?' · Note: '+esc(b.note):''}</div></div><button class="btn ghost small" id="closeBillDetails">Close</button></div><div class="tablewrap"><table><thead><tr><th>Item</th><th>Qty</th><th class="right">Price</th><th class="right">Amount</th></tr></thead><tbody>${b.items.map(i=>`<tr><td>${esc(i.name)}</td><td>${i.qty}</td><td class="right">${money(i.price)}</td><td class="right">${money(i.price*i.qty)}</td></tr>`).join('')}</tbody><tfoot><tr><th colspan="3">TOTAL</th><th class="right">${money(b.total)}</th></tr></tfoot></table></div><div class="actions" style="margin-top:12px"><button class="btn" id="detailsPrint">Print receipt</button></div>`;el.classList.remove('hidden');document.getElementById('closeBillDetails').onclick=()=>el.classList.add('hidden');document.getElementById('detailsPrint').onclick=()=>printReceipt(b);el.scrollIntoView({behavior:'smooth',block:'nearest'})}
 document.getElementById('salesDate').value=today();document.getElementById('salesDate').addEventListener('change',renderSales);document.getElementById('salesSearch').addEventListener('input',renderSales);
@@ -422,11 +472,11 @@ document.getElementById('newCategoryName').onkeydown=e=>{if(e.key==='Enter'){e.p
 
 document.getElementById('restoreFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!Array.isArray(x.items)||!Array.isArray(x.bills)||!Array.isArray(x.expenses)||!x.settings)throw Error('Invalid backup');if(!confirm('Importing replaces all records on this device. Continue?'))return;db={items:x.items,bills:x.bills,expenses:x.expenses,settings:x.settings};saveDB();toast('Backup restored.')}catch(err){alert('Could not import this backup file. Please select a valid Eswar Cafe JSON backup.')}e.target.value=''};
 document.getElementById('resetDemo').onclick=()=>{if(confirm('Delete ALL menu, sales and expense data from this browser? Export a backup first.')){localStorage.removeItem(STORE_KEY);db=loadDB();cart=[];saveDB();nav('billing');toast('Local data reset.')}};
-if('serviceWorker' in navigator && location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
-function connection(){document.getElementById('connectionStatus').textContent=navigator.onLine?'● Online · Offline-ready':'● Offline mode';document.getElementById('connectionStatus').style.color=navigator.onLine?'#f4df9d':'#ffd0a6'}
+if('serviceWorker' in navigator && location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=12', {updateViaCache:'none'}).catch(err=>console.warn('Service worker update failed:',err)))}
+function connection(){document.getElementById('connectionStatus').textContent=navigator.onLine?'● Online · Offline-ready · v12':'● Offline mode · v12';document.getElementById('connectionStatus').style.color=navigator.onLine?'#f4df9d':'#ffd0a6'}
 window.addEventListener('online',connection);window.addEventListener('offline',connection);
 renderAll();connection();
 </script>
-<script src="./settings-fix.js?v=20261030c"></script>
+<script src="./settings-fix.js?v=20261030d-v12"></script>
 </body>
 </html>
