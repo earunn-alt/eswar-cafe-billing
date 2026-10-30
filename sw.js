@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eswar-cafe-billing-v10-category-item-flow';
+const CACHE_NAME = 'eswar-cafe-billing-v11-item-save';
 const APP_FILES = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {

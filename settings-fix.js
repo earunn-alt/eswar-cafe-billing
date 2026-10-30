@@ -88,7 +88,7 @@
     const input=$('newCategoryName');const name=(input?.value||'').trim();
     if(!name){notify('Enter a category name first.');input?.focus();return;}
     const d=defaults(readDB());
-    const cats=[...new Set([...(d.settings.itemCategories||[]),...(d.items||[]).map(i=>i.category)].filter(Boolean))];
+    const cats=[...new Set((d.settings.itemCategories||[]).filter(Boolean))];
     if(cats.some(c=>c.toLowerCase()===name.toLowerCase())){notify('That category already exists.');return;}
     d.settings.itemCategories.push(name);writeDB(d);if(input)input.value='';
     refreshCategoryUI(d);refreshCounterUI(d);notify('Category added: '+name);
