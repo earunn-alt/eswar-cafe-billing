@@ -1,5 +1,5 @@
-const CACHE_NAME = 'eswar-cafe-billing-v13-item-photos';
-const APP_FILES = ['./', './index.html', './manifest.json', './settings-fix.js?v=20261030e-v13'];
+const CACHE_NAME = 'eswar-cafe-billing-v14-image-crop';
+const APP_FILES = ['./', './index.html', './manifest.json', './settings-fix.js?v=20261030f-v14'];
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {

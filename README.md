@@ -1,10 +1,10 @@
-# Eswar Cafe Billing – v13 item photo upload
+# Eswar Cafe Billing – v14 item photo upload
 
 ## New feature: upload food photos per menu item
 - Add Item and Edit Item forms now include a **＋ Add image** control.
 - Clicking it opens the local device file picker (`image/*`).
 - A preview is shown before saving; the photo can be removed or replaced.
-- Photos are resized to a maximum 560 px side and compressed to JPEG before storage.
+- Photos open in a 16:9 crop editor. Drag to reposition and use the zoom slider; the final 640 × 360 crop is compressed to JPEG before storage.
 - The compressed image is saved with the menu item in this browser's local database, so it is available offline.
 - Existing items without a photo continue to show their fallback emoji.
 - Items with a photo show it on the Billing/POS card and in the Items & Prices list.
@@ -18,8 +18,11 @@ This version still uses browser local storage; it does not upload photos to a cl
 2. Extract this ZIP. All files are at the ZIP root.
 3. Replace the root-level `index.html`, `sw.js`, `settings-fix.js`, `manifest.json`, `README.md`, and keep `Eswar-Cafe-original-logo.png` in the root.
 4. Commit to the `main` branch and wait for GitHub Pages to deploy.
-5. Reload the website with Ctrl + Shift + R. Confirm the status shows **v13**.
+5. Reload the website with Ctrl + Shift + R. Confirm the status shows **v14**.
 6. Open Items & Prices → Add item → click **＋ Add image** → choose a photo → confirm the preview → save the item. Confirm its photo and name/price layout appear in Billing/POS.
 
 ## Validation
 The inline JavaScript and settings helper are syntax-checked. The package contents and cache version are checked. Full browser interaction testing may depend on the target browser/device; test with one sample menu item before live billing.
+
+
+Version 14 adds an interactive 16:9 food-photo crop editor. Users can drag the photo, zoom, reset, and confirm the crop that matches the POS card before the image is saved locally. Square, portrait, and landscape input photos are accepted.
